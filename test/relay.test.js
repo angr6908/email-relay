@@ -7,8 +7,8 @@ const KEY = "csk-test";
 
 // "Sat, 13 Sep 2026 05:51:53 +0800", normalised to UTC by postal-mime.
 const MIME = [
-  "From: Anthropic <no-reply@mail.anthropic.com>",
-  "To: simplelogin-a@vspo.me",
+  "From: Anthropic <sender@mail.example.org>",
+  "To: alias@example.org",
   "Subject: Your secure link to Claude.ai is here",
   "Date: Sat, 13 Sep 2026 05:51:53 +0800",
   "MIME-Version: 1.0",
@@ -25,8 +25,10 @@ const MIME = [
 
 function message(overrides = {}) {
   return {
-    from: "no-reply@mail.anthropic.com",
-    to: "simplelogin-a@vspo.me",
+    from: "sender@mail.example.org",
+    // Envelope recipient differs from the header To: (the alias), as with
+    // Cloudflare-routed forwarded mail.
+    to: "mailbox@example.com",
     rawSize: MIME.length,
     raw: new ReadableStream({
       start(controller) {
@@ -78,12 +80,12 @@ describe("relayEvent", () => {
     expect(payload.allowed_mentions).toEqual({ parse: [] });
 
     const embed = payload.embeds[0];
-    expect(embed.author.name).toBe("Anthropic <no-reply@mail.anthropic.com>");
+    expect(embed.author.name).toBe("Anthropic");
     expect(embed.title).toBe("Your secure link to Claude.ai is here");
     expect(embed.description).toBe("[Sign in](https://claude.ai/login/magic?token=abc123)");
     expect(embed.fields[0]).toEqual({
       name: "To",
-      value: "simplelogin-a@vspo.me",
+      value: "alias@example.org",
       inline: true,
     });
     expect(embed.fields[1].value).toBe("2026-09-13 05:51 CST");

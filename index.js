@@ -172,10 +172,19 @@ function mailbox(address) {
   return { name: address.name ?? "", address: own };
 }
 
-function displayFrom(parsed, envelope) {
-  const from = mailbox(parsed.from);
-  if (!from) return envelope;
-  return from.name ? `${from.name} <${from.address}>` : from.address;
+/** Display name only; the address itself is deliberately never shown. */
+function displayNameFrom(parsed) {
+  return mailbox(parsed.from)?.name ?? "";
+}
+
+/**
+ * The header's To recipients — for an action email the address it was
+ * originally addressed to, which for aliases is the alias itself. Falls back
+ * to the envelope recipient when the header is missing.
+ */
+function originalRecipients(parsed, envelope) {
+  const list = (parsed.to ?? []).map((address) => mailbox(address)?.address).filter(Boolean);
+  return list.join(", ") || envelope;
 }
 
 function bodyText(parsed) {
@@ -197,12 +206,11 @@ function buildEmbed(inbound, rewritten) {
     fields.push({ name: "Attachments", value: truncate(list, 1024), inline: false });
   }
 
-  const author = {};
-  if (inbound.from) author.name = inbound.from;
+  const author = inbound.from ? { name: truncate(inbound.from, 256) } : undefined;
 
   return {
     color: EMBED_COLOR,
-    author,
+    ...(author ? { author } : {}),
     title: truncate(inbound.subject || "(no subject)", 256),
     description: truncate(body, 4000),
     fields,
@@ -295,10 +303,10 @@ export async function relayEvent(message, env) {
   const parsed = await PostalMime.parse(message.raw);
 
   const inbound = {
-    from: displayFrom(parsed, message.from),
-    // Envelope recipient: the address mail actually landed on, which is the
-    // alias for forwarded mail.
-    to: message.to,
+    from: displayNameFrom(parsed),
+    // Header To: the address the mail was originally addressed to, which is
+    // the alias for forwarded mail. Envelope To is the fallback.
+    to: originalRecipients(parsed, message.to),
     subject: parsed.subject ?? "",
     date: parsed.date ?? "",
     text: bodyText(parsed),

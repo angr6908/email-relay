@@ -201,7 +201,7 @@ describe("buildEmbed", () => {
     expect(embed.title).toBe("(no subject)");
     expect(embed.description).toBe("*(no content)*");
     expect(embed.fields[0].value).toBe("(unknown)");
-    expect(embed.author).toEqual({});
+    expect(embed.author).toBeUndefined();
     expect(embed.fields).toHaveLength(2);
   });
 });
