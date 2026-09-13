@@ -1,9 +1,8 @@
 import PostalMime from "postal-mime";
 
 const EMBED_COLOR = 0x5865f2;
-const AI_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731";
-const AI_TIMEOUT_MS = 9000;
+const CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions";
+const DEFAULT_MODEL = "qwen-3.8-27b";
 const DISCORD_TIMEOUT_MS = 6000;
 const MAX_PARSE_BYTES = 5 * 1024 * 1024;
 const CST_OFFSET_MS = 8 * 60 * 60 * 1000;
@@ -227,13 +226,13 @@ function describe(err) {
 }
 
 async function rewriteWithAi(body, env) {
-  if (!body || !env.OPENROUTER_API_KEY) return null;
+  if (!body || !env.CEREBRAS_API_KEY) return null;
 
   try {
-    const res = await fetch(AI_URL, {
+    const res = await fetch(CEREBRAS_URL, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+        authorization: `Bearer ${env.CEREBRAS_API_KEY}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -243,20 +242,17 @@ async function rewriteWithAi(body, env) {
           { role: "user", content: `<email-body>\n${body}\n</email-body>` },
         ],
         temperature: 0,
-        // The digest needs no reasoning; the -0731 snapshot honors "none"
-        // with zero thinking tokens.
-        reasoning: { effort: "none" },
-        provider: {
-          // Pin BaseTen, fallbacks on so an outage degrades instead of dropping.
-          order: ["BaseTen"],
-        },
+        // Flat string, per Cerebras' own schema; thinking is billed as output
+        // tokens, so "high" is 14x the cost of "none" for a shorter answer.
+        // "none" is fast but returns a bare link on notification mail, dropping
+        // the detail that identifies the event. "medium" keeps it, ~1.1s.
+        reasoning_effort: "medium",
       }),
-      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     });
 
     if (!res.ok) {
       const detail = (await res.text()).slice(0, 500);
-      console.error(`OpenRouter rewrite failed: ${res.status} ${detail}`);
+      console.error(`Cerebras rewrite failed: ${res.status} ${detail}`);
       return null;
     }
 
@@ -264,7 +260,7 @@ async function rewriteWithAi(body, env) {
     const content = completion?.choices?.[0]?.message?.content ?? "";
     return cleanAiText(content) || null;
   } catch (err) {
-    console.error("OpenRouter rewrite failed:", describe(err));
+    console.error("Cerebras rewrite failed:", describe(err));
     return null;
   }
 }

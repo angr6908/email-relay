@@ -33,7 +33,7 @@ To deploy from the CLI instead:
 ```bash
 npx wrangler login
 npx wrangler secret put DISCORD_WEBHOOK_URL
-npx wrangler secret put OPENROUTER_API_KEY
+npx wrangler secret put CEREBRAS_API_KEY
 npx wrangler deploy
 ```
 
@@ -50,12 +50,14 @@ entry point; no binding is configured in `wrangler.jsonc`.
 | Secret | |
 | --- | --- |
 | `DISCORD_WEBHOOK_URL` | required; without it the message is dropped |
-| `OPENROUTER_API_KEY` | optional; without it the embed carries the plain-text body |
-| `AI_MODEL` | optional; defaults to `deepseek/deepseek-v4-flash-0731` |
+| `CEREBRAS_API_KEY` | optional; without it the embed carries the plain-text body |
+| `AI_MODEL` | optional; defaults to `qwen-3.8-27b` |
 
-Model requests pin the `BaseTen` provider with fallbacks enabled, so an outage at
-that host degrades to another rather than dropping the digest. Messages above
-5 MB are skipped rather than parsed.
+Digests come from Cerebras Inference directly, called with
+`reasoning_effort: "medium"`. There is no fallback host behind that call, so an
+outage at Cerebras costs the digest, not the message: the embed still posts,
+carrying the linkified plain-text body. Messages above 5 MB are skipped rather
+than parsed.
 
 ## Behaviour notes
 

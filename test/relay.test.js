@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { relayEvent } from "../index.js";
 
 const WEBHOOK = "https://discord.com/api/webhooks/1/abc";
-const KEY = "sk-or-test";
+const KEY = "csk-test";
 
 // "Sat, 13 Sep 2026 05:51:53 +0800", normalised to UTC by postal-mime.
 const MIME = [
@@ -44,7 +44,7 @@ beforeEach(() => {
   calls = [];
   globalThis.fetch = vi.fn(async (url, init) => {
     calls.push({ url: String(url), body: JSON.parse(init.body) });
-    if (String(url).includes("openrouter")) {
+    if (String(url).includes("cerebras")) {
       return new Response(
         JSON.stringify({ choices: [{ message: { content: "```md\n[Sign in](https://claude.ai/login/magic?token=abc123)\n```" } }] }),
         { headers: { "content-type": "application/json" } },
@@ -59,18 +59,18 @@ afterEach(() => {
 });
 
 const discord = () => calls.find((c) => c.url.includes("discord.com"));
-const openrouter = () => calls.find((c) => c.url.includes("openrouter"));
+const cerebras = () => calls.find((c) => c.url.includes("cerebras"));
 
 describe("relayEvent", () => {
   it("parses MIME, rewrites it, and posts one embed", async () => {
-    await relayEvent(message(), { DISCORD_WEBHOOK_URL: WEBHOOK, OPENROUTER_API_KEY: KEY });
+    await relayEvent(message(), { DISCORD_WEBHOOK_URL: WEBHOOK, CEREBRAS_API_KEY: KEY });
 
     expect(calls).toHaveLength(2);
 
-    const ai = openrouter();
-    expect(ai.body.model).toBe("deepseek/deepseek-v4-flash-0731");
-    expect(ai.body.provider).toEqual({ order: ["BaseTen"] });
-    expect(ai.body.reasoning).toEqual({ effort: "none" });
+    const ai = cerebras();
+    expect(ai.body.model).toBe("qwen-3.8-27b");
+    expect(ai.body.reasoning_effort).toBe("medium");
+    expect(ai.body.provider).toBeUndefined();
     expect(ai.body.messages[1].content).toContain("magic?token=abc123");
 
     const payload = discord().body;
@@ -93,11 +93,11 @@ describe("relayEvent", () => {
   it("falls back to linkified plain text when the model call fails", async () => {
     globalThis.fetch = vi.fn(async (url, init) => {
       calls.push({ url: String(url), body: JSON.parse(init.body) });
-      if (String(url).includes("openrouter")) return new Response("boom", { status: 503 });
+      if (String(url).includes("cerebras")) return new Response("boom", { status: 503 });
       return new Response("{}", { status: 200 });
     });
 
-    await relayEvent(message(), { DISCORD_WEBHOOK_URL: WEBHOOK, OPENROUTER_API_KEY: KEY });
+    await relayEvent(message(), { DISCORD_WEBHOOK_URL: WEBHOOK, CEREBRAS_API_KEY: KEY });
 
     expect(discord().body.embeds[0].description).toBe(
       "Sign in to Claude.ai using this magic link (expires in 10 minutes).\n\n" +
@@ -115,14 +115,14 @@ describe("relayEvent", () => {
   });
 
   it("does nothing without a webhook", async () => {
-    await relayEvent(message(), { OPENROUTER_API_KEY: KEY });
+    await relayEvent(message(), { CEREBRAS_API_KEY: KEY });
     expect(calls).toHaveLength(0);
   });
 
   it("skips oversized messages before parsing", async () => {
     await relayEvent(message({ rawSize: 6 * 1024 * 1024 }), {
       DISCORD_WEBHOOK_URL: WEBHOOK,
-      OPENROUTER_API_KEY: KEY,
+      CEREBRAS_API_KEY: KEY,
     });
     expect(calls).toHaveLength(0);
   });
