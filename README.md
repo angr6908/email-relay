@@ -53,7 +53,7 @@ entry point; no binding is configured in `wrangler.jsonc`.
 | `OPENROUTER_API_KEY` | optional; without it the embed carries the plain-text body |
 | `AI_MODEL` | optional; defaults to `deepseek/deepseek-v4-flash-0731` |
 
-Model requests pin the `Wafer` provider with fallbacks enabled, so an outage at
+Model requests pin the `BaseTen` provider with fallbacks enabled, so an outage at
 that host degrades to another rather than dropping the digest. Messages above
 5 MB are skipped rather than parsed.
 

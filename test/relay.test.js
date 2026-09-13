@@ -69,7 +69,7 @@ describe("relayEvent", () => {
 
     const ai = openrouter();
     expect(ai.body.model).toBe("deepseek/deepseek-v4-flash-0731");
-    expect(ai.body.provider).toEqual({ order: ["Wafer"] });
+    expect(ai.body.provider).toEqual({ order: ["BaseTen"] });
     expect(ai.body.reasoning).toEqual({ effort: "none" });
     expect(ai.body.messages[1].content).toContain("magic?token=abc123");
 

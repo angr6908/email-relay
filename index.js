@@ -4,7 +4,6 @@ const EMBED_COLOR = 0x5865f2;
 const AI_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731";
 const AI_TIMEOUT_MS = 9000;
-const AI_MAX_TOKENS = 1200;
 const DISCORD_TIMEOUT_MS = 6000;
 const MAX_PARSE_BYTES = 5 * 1024 * 1024;
 const CST_OFFSET_MS = 8 * 60 * 60 * 1000;
@@ -244,13 +243,12 @@ async function rewriteWithAi(body, env) {
           { role: "user", content: `<email-body>\n${body}\n</email-body>` },
         ],
         temperature: 0,
-        max_tokens: AI_MAX_TOKENS,
         // The digest needs no reasoning; the -0731 snapshot honors "none"
         // with zero thinking tokens.
         reasoning: { effort: "none" },
         provider: {
-          // Pin Wafer, fallbacks on so an outage degrades instead of dropping.
-          order: ["Wafer"],
+          // Pin BaseTen, fallbacks on so an outage degrades instead of dropping.
+          order: ["BaseTen"],
         },
       }),
       signal: AbortSignal.timeout(AI_TIMEOUT_MS),
