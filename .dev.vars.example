@@ -1,0 +1,4 @@
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/xxx/yyy
+OPENROUTER_API_KEY=sk-or-xxx
+# Optional; defaults to deepseek/deepseek-v4-flash-0731
+# AI_MODEL=
